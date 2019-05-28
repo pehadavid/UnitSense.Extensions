@@ -13,7 +13,4 @@
     <PackageReference Include="SimpleBase" Version="1.7.1" />
     <PackageReference Include="StackExchange.Redis" Version="1.2.6" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Text\" />
-  </ItemGroup>
 </Project>
