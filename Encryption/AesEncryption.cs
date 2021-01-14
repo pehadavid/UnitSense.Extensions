@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using SimpleBase;
 using UnitSense.Extensions.Extensions;
 
 namespace UnitSense.Extensions.Encryption
@@ -45,7 +46,7 @@ namespace UnitSense.Extensions.Encryption
                     switch (cipherStyle)
                     {
                         case CipherStyle.Base58:
-                            return SimpleBase.Base58.Bitcoin.Encode(cipherBytes);
+                            return Base58.Bitcoin.Encode(cipherBytes);
                         default:
                             return Convert.ToBase64String(cipherBytes);
                     }
@@ -58,7 +59,7 @@ namespace UnitSense.Extensions.Encryption
             // Place le texte à déchiffrer dans un tableau d'octets
             var cipheredData = cipherStyle == CipherStyle.Base64
                 ? Convert.FromBase64String(cipher)
-                : SimpleBase.Base58.Bitcoin.Decode(cipher);
+                : Base58.Bitcoin.Decode(cipher);
                 
 
             using (var aesManager = Aes.Create())
