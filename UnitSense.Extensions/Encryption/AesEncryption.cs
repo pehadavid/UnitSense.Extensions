@@ -23,21 +23,33 @@ namespace UnitSense.Extensions.Encryption
 
     public class AesEncryption
     {
+        internal class DerivedData
+        {
+            public byte[] Key { get; set; }
+            public byte[] Iv { get; set; }
+            private static byte[] saltKey => new byte[] { 0x01, 0x01, 0x02, 0x03, 0x05, 0x08, 0x0D, 0x15 };
 
-        private static byte[] saltKey =>new byte[] { 0x01, 0x01, 0x02, 0x03, 0x05, 0x08, 0x0D, 0x15 };
+            public DerivedData(string password)
+            {
+                Rfc2898DeriveBytes diRfc2898DeriveBytes = new Rfc2898DeriveBytes(password, saltKey, 8);
+                Key = diRfc2898DeriveBytes.GetBytes(16);
+                Iv = diRfc2898DeriveBytes.GetBytes(16);
+            }
+        }
+
         public static string Encrypt(string data, string password, CipherStyle cipherStyle = CipherStyle.Base64)
         {
             using (var aesManager = Aes.Create())
             {
-                Rfc2898DeriveBytes diRfc2898DeriveBytes = new Rfc2898DeriveBytes(password, saltKey, 8);
-                var keyBytes = diRfc2898DeriveBytes.GetBytes(16);
-                var keyIv = diRfc2898DeriveBytes.GetBytes(16);
-                var crypto = aesManager.CreateEncryptor(keyBytes, keyIv);
+                aesManager.Mode = CipherMode.CBC;
+                DerivedData derivedData = new DerivedData(password);
+                var crypto = aesManager.CreateEncryptor(derivedData.Key, derivedData.Iv);
 
                 using (MemoryStream ms = new MemoryStream())
                 using (CryptoStream cs = new CryptoStream(ms, crypto, CryptoStreamMode.Write))
                 {
-                    cs.Write(Encoding.UTF8.GetBytes(data), 0, data.Length);
+                    var buffer = Encoding.UTF8.GetBytes(data);
+                    cs.Write(buffer);
                     cs.FlushFinalBlock();
 
 
@@ -60,27 +72,24 @@ namespace UnitSense.Extensions.Encryption
             var cipheredData = cipherStyle == CipherStyle.Base64
                 ? Convert.FromBase64String(cipher)
                 : Base58.Bitcoin.Decode(cipher);
-                
+
 
             using (var aesManager = Aes.Create())
             {
-                Rfc2898DeriveBytes diRfc2898DeriveBytes = new Rfc2898DeriveBytes(password, saltKey, 8);
-                var keyBytes = diRfc2898DeriveBytes.GetBytes(16);
-                var keyIv = diRfc2898DeriveBytes.GetBytes(16);
-
-                var crypto = aesManager.CreateDecryptor(keyBytes, keyIv);
+                aesManager.Mode = CipherMode.CBC;
+                DerivedData derivedData = new DerivedData(password);
+                var crypto = aesManager.CreateDecryptor(derivedData.Key, derivedData.Iv);
                 using (MemoryStream ms = new MemoryStream(cipheredData.ToArray()))
                 using (CryptoStream cs = new CryptoStream(ms, crypto, CryptoStreamMode.Read))
+                using (StreamReader sr = new StreamReader(cs, Encoding.UTF8))
                 {
-                    // Place les données déchiffrées dans un tableau d'octet
-                    byte[] plainTextData = new byte[cipheredData.Length];
-                    int decryptedByteCount = cs.Read(plainTextData, 0, plainTextData.Length);
-                    return Encoding.UTF8.GetString(plainTextData, 0, decryptedByteCount);
+                    var readerData = sr.ReadToEnd();
+                    return readerData;
                 }
             }
         }
 
-     
+
         public enum CipherStyle
         {
             Base64,
